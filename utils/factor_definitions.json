@@ -1,0 +1,197 @@
+{
+  "factors": {
+    "alpha002": {
+      "family": "original_alpha101",
+      "formula": "See utils/features.py: make_alpha101_factors"
+    },
+    "alpha003": {
+      "family": "original_alpha101",
+      "formula": "See utils/features.py: make_alpha101_factors"
+    },
+    "alpha006": {
+      "family": "original_alpha101",
+      "formula": "See utils/features.py: make_alpha101_factors"
+    },
+    "alpha012": {
+      "family": "original_alpha101",
+      "formula": "See utils/features.py: make_alpha101_factors"
+    },
+    "alpha041": {
+      "family": "original_alpha101",
+      "formula": "See utils/features.py: make_alpha101_factors"
+    },
+    "alpha101": {
+      "family": "original_alpha101",
+      "formula": "See utils/features.py: make_alpha101_factors"
+    },
+    "reversal_1d": {
+      "family": "daily_reversal",
+      "formula": "-close_return_1d"
+    },
+    "reversal_5d": {
+      "family": "daily_reversal",
+      "formula": "-close_return_5d"
+    },
+    "reversal_20d": {
+      "family": "daily_reversal",
+      "formula": "-close_return_20d"
+    },
+    "momentum_63_skip5": {
+      "family": "momentum",
+      "formula": "adj_close[t-5]/adj_close[t-63]-1"
+    },
+    "momentum_252_skip21": {
+      "family": "momentum",
+      "formula": "adj_close[t-21]/adj_close[t-252]-1"
+    },
+    "day_return_1": {
+      "family": "return_components",
+      "formula": "adj_close/adj_open-1"
+    },
+    "day_return_5": {
+      "family": "return_components",
+      "formula": "exp(sum_5(log(adj_close/adj_open)))-1"
+    },
+    "day_return_20": {
+      "family": "return_components",
+      "formula": "exp(sum_20(log(adj_close/adj_open)))-1"
+    },
+    "night_return_1": {
+      "family": "return_components",
+      "formula": "adj_open/adj_close.shift(1)-1"
+    },
+    "night_return_5": {
+      "family": "return_components",
+      "formula": "exp(sum_5(log(adj_open/adj_close.shift(1))))-1"
+    },
+    "night_return_20": {
+      "family": "return_components",
+      "formula": "exp(sum_20(log(adj_open/adj_close.shift(1))))-1"
+    },
+    "residual_reversal_1": {
+      "family": "residual_reversal",
+      "formula": "-(ret-beta126_lag1*SPYret)/vol20_lag1"
+    },
+    "residual_reversal_5": {
+      "family": "residual_reversal",
+      "formula": "-sum_5(ret-beta126_lag1*SPYret)/(vol20_lag1*sqrt(5))"
+    },
+    "volatility_20": {
+      "family": "risk_liquidity",
+      "formula": "std_20(close_returns)"
+    },
+    "illiquidity_20": {
+      "family": "risk_liquidity",
+      "formula": "mean_20(abs(close_return)/(raw_vwap*raw_volume))*1e6"
+    },
+    "relative_dollar_volume": {
+      "family": "risk_liquidity",
+      "formula": "current_dollars/mean_20(dollars).shift(1)"
+    },
+    "normalized_alpha041": {
+      "family": "price_pressure",
+      "formula": "(sqrt(raw_high*raw_low)-raw_vwap)/raw_close"
+    },
+    "normalized_vwap_reversal": {
+      "family": "price_pressure",
+      "formula": "(raw_vwap-raw_close)/raw_close"
+    },
+    "close_location_reversal": {
+      "family": "price_pressure",
+      "formula": "-(2*close-high-low)/(high-low)"
+    },
+    "intraday_head30": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: head30"
+    },
+    "intraday_head60": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: head60"
+    },
+    "intraday_tail30": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: tail30"
+    },
+    "intraday_tail60": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: tail60"
+    },
+    "intraday_head_volume_share": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: head_volume_share"
+    },
+    "intraday_tail_volume_share": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: tail_volume_share"
+    },
+    "intraday_rv": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: rv"
+    },
+    "intraday_downside_share": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: downside_share"
+    },
+    "intraday_skew": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: skew"
+    },
+    "intraday_efficiency": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: efficiency"
+    },
+    "intraday_vwap_reversal": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: vwap_reversal"
+    },
+    "intraday_range": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: range"
+    },
+    "intraday_close_location_reversal": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: close_location_reversal"
+    },
+    "intraday_weighted_bar_return": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: weighted_bar_return"
+    },
+    "intraday_signed_bar_volume": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: signed_bar_volume"
+    },
+    "intraday_largest_bar_share": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: largest_bar_share"
+    },
+    "intraday_return_volume_corr": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: return_volume_corr"
+    },
+    "intraday_rth_return": {
+      "family": "intraday",
+      "formula": "RTH 5-minute aggregate: rth_return"
+    },
+    "residual_reversal_x_illiquidity": {
+      "family": "conditional",
+      "formula": "residual_reversal_1 * rank_cs(illiquidity_20)"
+    },
+    "residual_reversal_x_volume": {
+      "family": "conditional",
+      "formula": "residual_reversal_1 * clip(relative_dollar_volume,.2,5)"
+    },
+    "tail_reversal_risk_scaled": {
+      "family": "conditional",
+      "formula": "-intraday_tail30/intraday_rv"
+    },
+    "tail_reversal_x_activity": {
+      "family": "conditional",
+      "formula": "-tail30*tail_volume_share/mean_20(tail_volume_share).shift(1)"
+    },
+    "gap_reversal_after_disagreement": {
+      "family": "conditional",
+      "formula": "-night_return_1 * I(sign(night_return_1)!=sign(day_return_1))"
+    }
+  },
+  "note": "48 original features; historical split text in the old manifest is deliberately omitted. Use current split notes."
+}
