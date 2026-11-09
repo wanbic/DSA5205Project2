@@ -1,0 +1,848 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=25mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,graphicx,array,tabularx,xcolor}
+\usepackage[hidelinks]{hyperref}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{5pt}
+\setlength{\emergencystretch}{2em}
+\renewcommand{\arraystretch}{1.12}
+\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\blankdata}{\par\noindent\textit{[Intentionally left blank for the data section.]}\par}
+\newcommand{\fig}[3]{\begin{figure}[htbp]\centering
+\includegraphics[width=\linewidth]{report_assets/#1}
+\caption{#2}\label{#3}\end{figure}}
+\newcommand{\tbl}[3]{\begin{table}[htbp]\centering\small
+\caption{#2}\label{#3}#1\end{table}}
+\makeatletter
+\newcommand{\inlinecaption}[2]{\begingroup\def\@captype{#1}\caption{#2}\endgroup}
+\makeatother
+\input{report_assets/tables.tex}
+
+\begin{document}
+\begin{titlepage}
+\centering
+{\large DSA5205 Project 2\par}
+\vspace{16mm}
+{\LARGE\bfseries Daily Stock Selection with Price--Volume Signals\par}
+\vspace{5mm}
+{\Large Intraday Information, Feature Enrichment,\par
+and Regularization\par}
+\vspace{12mm}
+{\large Group 6\par}
+\vspace{3mm}
+{\normalsize Team members and student IDs: [to be completed]\par}
+\vspace{5mm}
+{\normalsize 8 November 2026\par}
+\vspace{12mm}
+\begin{minipage}{0.92\linewidth}
+\begin{abstract}
+This report studies whether richer price--volume information improves daily
+stock selection after transaction costs. Four Ridge configurations share the
+same eligible stock universe, next-open return target, chronological evaluation,
+and Top50Drop5 portfolio rule. The configurations use 18 intraday-derived
+predictors, 16 basic daily indicators, 28 enriched daily factors, and the complete
+48-factor set. The 28-factor configuration is an exact subset of the complete
+model, allowing a nested comparison of the additional intraday-dependent
+feature block. A separate nine-configuration ablation compares Ridge, Lasso,
+and Elastic Net on the same 48 inputs using three expanding validation folds.
+At 5 basis points per side, the complete fixed-penalty Ridge model earns a
+2024--2025 CAGR of 23.01\%, compared with 19.86\% for the basic daily baseline,
+19.24\% for the enriched daily model, 11.32\% for the intraday-only model, and
+22.48\% for SPY. Its Sharpe ratio of 1.093 remains below SPY's 1.280.
+Validation selects Lasso by prediction fit, but selected Ridge produces better
+test-period portfolio performance. The results emphasize complementarity of
+signals, the limits of feature expansion, and the distinction between
+statistical accuracy and economic value. The data section is deliberately
+reserved for later completion.
+\end{abstract}
+\end{minipage}
+\vfill
+{\small Report draft: methods and results are populated from completed runs;
+data documentation and team details remain to be completed.\par}
+\end{titlepage}
+
+\section{Introduction and Research Questions}
+\label{sec:intro}
+This project compares four price--volume feature sets for daily stock
+selection among historically eligible S\&P 500 constituents. All models use
+Ridge regression, the same return target, and the same long-only portfolio
+rule. SPY provides an investable benchmark, with US dollars as the accounting
+currency. Intraday information is summarized from 5-minute bars, but every
+strategy trades daily.
+
+Daily returns describe momentum and reversal over several sessions. Intraday
+returns and volume timing describe how the latest session unfolded. Combining
+them may improve stock ranking, but additional predictors can also add noise.
+Regularization helps control this problem by shrinking fitted coefficients.
+Sparse forecasting motivates the Lasso comparison \cite{chinco}, while
+research on complexity and shrinkage motivates retaining a broader set of
+weak signals \cite{kelly}. Our experiment uses a smaller feature set and a
+different trading horizon from those studies.
+
+We ask three questions: Does enriching daily features improve a simple
+baseline? Does adding intraday information improve the daily-only model?
+On the same inputs, how do Ridge, Lasso, and Elastic Net compare? The main
+comparison changes the features while fixing the learner; a separate
+ablation changes the learner while fixing M4's 48 features.
+
+\section{Market, Data Sources, and Cleaning}
+\label{sec:data}
+\subsection{Original Providers and Lawful Data Access}
+\blankdata
+\subsection{Sample Coverage and Security Identifiers}
+\blankdata
+\subsection{Historical Membership, Adjustments, and Missing Observations}
+\blankdata
+
+\section{Experimental Design and Feature Architecture}
+\label{sec:features}
+\subsection{A Controlled Sequence of Four Models}
+Table~\ref{tab:architecture} distinguishes the feature comparison from the
+estimator-selection ablation. The main comparison uses the same Ridge
+implementation with $\alpha_R=1000$ throughout. The eligible sample, target,
+preprocessing rules, temporal folds, starting capital, portfolio construction,
+and cost scenarios are shared. Changing the stocks, execution convention,
+or trading intensity at the same time as the features would make return
+differences difficult to interpret.
+
+\begin{table}[htbp]\centering\small
+\caption{Main feature configurations and their experimental roles.}
+\label{tab:architecture}
+\begin{tabular}{lp{0.45\linewidth}rl}\toprule
+ID & Predictors & Count & Learner\\\midrule
+M1 & Intraday aggregates only & 18 & Ridge, 1000\\
+M2 & Basic daily price--volume indicators & 16 & Ridge, 1000\\
+M3 & Enriched daily factors; exact daily-only subset of M4 & 28 & Ridge, 1000\\
+M4 & M3 plus 18 intraday aggregates and two tail interactions & 48 & Ridge, 1000\\\bottomrule
+\end{tabular}
+\end{table}
+
+The clearest nested comparison is M3 versus M4. Every M3 predictor has exactly
+the same definition and value in M4, and the extra block contains exactly
+20 variables. In contrast, M2 and M3 differ in definitions as well as feature
+count. Their comparison evaluates basic versus enriched daily designs, not a
+pure addition of twelve variables. M1 provides a complementary intraday-only
+perspective, but it is not the same as trading every five minutes.
+
+\subsection{M2: Basic Daily Indicators}
+M2 uses 16 indicators: returns over one, five, and twenty sessions;
+longer momentum windows that skip recent observations; daytime and overnight
+returns; rolling volatility; daily range and closing position; deviations
+from moving averages; and relative volume and dollar activity. These provide
+an interpretable baseline covering trend, reversal, risk, and trading activity.
+No 5-minute data or explicit interaction is included.
+Appendix~\ref{app:basic} lists the formulas and lookbacks.
+
+\subsection{M3: Enriched Daily Factors}
+M3 uses the exact 28 daily-only predictors in M4. It adds market-residual
+reversals, illiquidity, price-pressure measures, six Alpha101-style formulas,
+and daily interactions. Residual reversal removes the return associated with
+a lagged stock--SPY beta. Risk scaling and interactions let reversal signals
+vary with volatility, liquidity, and activity. The formulaic factors follow
+the approach of Kakushadze \cite{alpha101}; their exact definitions are given
+in the appendix and the shared feature code.
+
+M2 and M3 differ in definitions as well as feature count. Their comparison
+therefore tests two daily feature designs, rather than simply adding twelve
+columns to an otherwise unchanged model.
+
+\subsection{M1 and M4: Intraday Information}
+M1 uses 18 regular-session aggregates: opening and closing returns, volume
+timing, realized variation, downside variation, path efficiency, price
+location, and price--volume relationships. These distinguish sessions with
+similar daily endpoints but different trading paths. The signed-volume
+measure uses bar-return signs as a proxy; it is not observed order flow.
+
+M4 combines M3's 28 daily factors with all 18 intraday aggregates and two
+tail-return interactions. These interactions scale closing reversal by
+intraday risk or closing activity. The M3--M4 comparison thus measures a
+20-feature block, not the isolated effect of sampling frequency. M1 tests
+whether the 18 intraday aggregates are useful without the daily context.
+
+\section{Prediction Target, Timing, and Preprocessing}
+\label{sec:labels}
+\subsection{Decision versus Execution}
+Let $t$ denote the signal session and $O^{a}_{i,t}$ and $C^{a}_{i,t}$ denote
+adjusted open and close. The ordinary one-step target is
+\begin{equation}
+r_{i,t}=\frac{O^{a}_{i,t+2}}{O^{a}_{i,t+1}}-1.
+\label{eq:label}
+\end{equation}
+The features $x_{i,t}$ use observations available by the close of $t$. The
+portfolio is formed from the resulting scores, filled at $t+1$ open, and marked
+at the next open. Information using the completed close of $t$ is not traded
+at that same closing price.
+
+\begin{table}[htbp]\centering\small
+\caption{Information and execution timeline for a normal observation.}
+\label{tab:timeline}
+\begin{tabular}{lp{0.70\linewidth}}\toprule
+Time & Operation\\\midrule
+Close of $t$ & Complete the daily and intraday features; calculate and rank scores.\\
+Open of $t+1$ & Rebalance using previously determined target weights and available quotes.\\
+Open of $t+2$ & Value the holding interval and complete the ordinary return label.\\
+Training cutoff & Admit an observation only if its label exit date is no later than the cutoff.\\\bottomrule
+\end{tabular}
+\end{table}
+
+For a security with a terminal return marker, the label uses the source's
+settlement proxy. This convention is shared by all models; a future terminal
+event is not used to avoid an earlier purchase.
+
+\subsection{Cross-Sectionally Standardized Training Labels}
+The regression target is standardized within each signal date:
+\begin{equation}
+y_{i,t}=\frac{r_{i,t}-\bar r_t}{s_t},
+\label{eq:ztarget}
+\end{equation}
+where $\bar r_t$ and $s_t$ are the mean and sample standard deviation of valid
+eligible labels on that date. This focuses fitting on relative cross-sectional
+outcomes and reduces changes in target scale across market conditions.
+The fitted value is consequently a ranking score in standardized units,
+not a calibrated expected percentage return.
+
+Standardization is applied to observed training outcomes, not to the feature
+inputs at prediction time. To prevent labels crossing a training boundary,
+an observation is admitted only when its exit date is within the training
+window. The final admitted signal is 27 December 2023, with exit on
+29 December 2023.
+
+\subsection{Training-Only Preprocessing}
+For each training fold, non-finite feature values are treated as missing.
+Missing entries are replaced by training medians, then each feature is
+centered and scaled using its training mean and standard deviation.
+The fitted transformations are applied unchanged to validation or test data.
+Rows with missing predictors remain in the eligible sample, allowing the
+four configurations to be compared on common stock-days.
+
+\section{Regularized Linear Models}
+\label{sec:models}
+\subsection{Why Ridge?}
+The models use the score $\hat y=b+z^\top\beta$, where $z$ contains the
+standardized inputs. Ridge shrinks coefficients without requiring most of
+them to be zero, which suits overlapping price--volume signals. Holding
+Ridge fixed across M1--M4 lets us compare information sets directly.
+M4 includes nonlinear feature transformations, but its fitted score remains
+linear in the supplied columns.
+
+\subsection{Objectives and Penalty Normalization}
+For $n$ training rows, the implemented objectives are
+\begin{align}
+(\hat b,\hat\beta)_R
+&=\arg\min_{b,\beta}
+\sum_{j=1}^{n}(y_j-b-z_j^\top\beta)^2+\alpha_R\|\beta\|_2^2,
+\label{eq:ridge}\\
+(\hat b,\hat\beta)_L
+&=\arg\min_{b,\beta}
+\frac{1}{2n}\sum_{j=1}^{n}(y_j-b-z_j^\top\beta)^2+\alpha_L\|\beta\|_1,
+\label{eq:lasso}\\
+(\hat b,\hat\beta)_E
+&=\arg\min_{b,\beta}
+\frac{1}{2n}\sum_{j=1}^{n}(y_j-b-z_j^\top\beta)^2
++\alpha_E\rho\|\beta\|_1
++\frac{\alpha_E(1-\rho)}{2}\|\beta\|_2^2.
+\label{eq:elastic}
+\end{align}
+These conventions match the installed scikit-learn estimators
+\cite{sklearnridge,sklearnlasso,sklearnelastic}. The intercept is not the
+regularized coordinate. All main models fix $\alpha_R=1000$; the separate
+ablation searches penalties with $\rho=0.5$ for Elastic Net.
+
+The raw alpha values are not directly comparable: Ridge uses summed squared
+loss, whereas Lasso and Elastic Net divide the loss by $2n$. Lasso can set
+coefficients exactly to zero; Elastic Net combines this sparsity with
+quadratic shrinkage. All models include an unpenalized intercept.
+
+Ridge uses scikit-learn's automatic solver. Lasso and Elastic Net use cyclic
+coordinate descent with tolerance $10^{-6}$ and at most 20,000 iterations.
+The iteration limit is checked. Coefficients describe contributions conditional
+on the other inputs, rather than causal effects.
+
+\section{Chronological Training, Validation, and Model Selection}
+\label{sec:split}
+\subsection{Expanding Validation and a Fixed Test-Period Fit}
+The temporal design uses three expanding validation folds, followed by a
+final 2018--2023 fit for 2024--2025. Table~\ref{tab:training}
+records the admitted training samples, including the label-maturity
+restriction. The same counts hold for the four main configurations.
+\tbl{\TrainingTable}{Training windows and mature-label samples from run metadata.}
+{tab:training}
+
+Each fold fits preprocessing and coefficients on past observations only.
+The final model is trained on mature 2018--2023 labels and held fixed through
+2024--2025; features and portfolio scores still update daily.
+Test signals run from 2 January 2024 to 29 December 2025. The first execution
+is on 3 January 2024 and final valuation is on 31 December 2025, giving
+500 return intervals.
+
+Each validation year starts with a fresh portfolio. The test period is one
+two-year portfolio path; its annual summaries do not restart the strategy.
+Chronological folds, training-only preprocessing, mature labels, and
+next-open execution control information flow.
+
+\subsection{The Small Estimator-Selection Ablation}
+The main comparison fixes Ridge alpha rather than tuning it
+separately for each feature set. Estimator selection is isolated in
+\code{model4_ablation.py}, using exactly M4's 48 inputs. Ridge tests
+$\{100,1000,10000\}$; Lasso and Elastic Net each test
+$\{0.0001,0.001,0.01\}$. Elastic Net fixes its L1 share at $0.5$ rather than
+adding a second search dimension. There are nine candidates and
+27 candidate-fold fits.
+
+For candidate $c$ and validation year $v$, let $R^2_{c,v}$ be the
+standardized-target prediction fit. The selection score is
+\begin{equation}
+S_c=\frac{1}{3}\sum_{v\in\{2021,2022,2023\}}R^2_{c,v}.
+\label{eq:selection}
+\end{equation}
+The largest score selects the parameter within each family. Exact ties prefer
+larger alpha. An overall validation-selected family is also recorded; exact
+family ties prefer fewer average active features, then the stated
+Ridge/Lasso/Elastic Net order. The choice uses validation results,
+not test-period CAGR or Sharpe.
+
+\tbl{\SearchTable}{Complete validation search on the 48-factor input set.
+Values are dimensionless prediction $R^2$, not return percentages.}{tab:grid}
+All three families choose the largest tested alpha: 10,000 for Ridge and
+0.01 for Lasso and Elastic Net. Lasso has the largest mean score,
+approximately 0.000131, followed by Elastic Net at 0.000106 and Ridge at
+$-0.000115$. The preferred values lie at grid boundaries, so the experiment
+identifies winners only within this grid, rather than a global optimum.
+
+Each selected family is refitted on mature 2018--2023 labels and evaluated
+in 2024--2025. All three selected estimators are reported. Validation results
+are used for selection; the test comparison measures their subsequent
+prediction and trading performance.
+
+\section{From Predictions to a Self-Financing Portfolio}
+\label{sec:trading}
+\subsection{Top50Drop5 Selection}
+At a signal close, eligible stocks with finite scores are ranked from highest
+to lowest. The portfolio targets approximately 50 equal-weight long positions.
+Existing holdings that lose eligibility must exit; vacancies are filled from
+the current ranks. Among otherwise retained holdings, at most five
+discretionary replacements are made: a better-ranked outsider replaces the
+worst retained name only if its score is strictly higher.
+
+The portfolio may differ from the unconstrained top 50 because voluntary
+replacements are limited. Mandatory exits and refills do not consume the
+five replacement slots. Retained positions are also rebalanced toward equal
+weights, so five replacements do not imply only five orders. Turnover is
+measured from actual simulated trades.
+
+\subsection{Costs and the Cash Budget}
+Every segment begins with USD 1 million. Let $q_{i,t}$ denote adjusted units,
+$p_{i,t}$ the execution mark, and $B_t$ cash. Portfolio value is
+\begin{equation}
+V_t=B_t+\sum_i q_{i,t}p_{i,t}.
+\end{equation}
+For absolute traded dollar notional $A_t$, the charge is
+\begin{equation}
+C_t=c A_t,\qquad
+A_t=\sum_i|\Delta q_{i,t}p_{i,t}|,\qquad
+c=\frac{c_{\mathrm{bps}}}{10^4}.
+\label{eq:fees}
+\end{equation}
+The main scenario is 5 bps per side; 0 and 10 bps provide sensitivity.
+Both buys and sells are charged, including initial entry and final liquidation.
+The solver determines fees and post-fee target allocations together, preventing
+a fully invested long-only portfolio from borrowing simply to pay its fees.
+
+One-sided turnover is $A_t/(2V_t^{\mathrm{pre}})$. The factor of two is only a
+reporting convention: the fee rate multiplies the full $A_t$, not half of it.
+Confusing those quantities would halve the intended cost. Cash interest and
+the risk-free rate used for Sharpe are zero. These long-only configurations have
+no short borrowing charge.
+
+\subsection{Missing Quotes and Settlement}
+An unfilled purchase leaves its allocation in cash. Existing holdings without
+a tradable quote are frozen and valued using available marks. A held security
+with a terminal marker is settled using the source proxy. Remaining tradable
+positions are liquidated at the final valuation, with fees charged.
+
+The backtest uses fractional adjusted units and idealized opening fills.
+It does not simulate order queues, partial fills, or market impact. The three
+flat-cost scenarios therefore describe execution assumptions rather than
+observed trading costs.
+
+\section{Evaluation Measures and Verification}
+\label{sec:metrics}
+\subsection{Forecast Metrics}
+On each date, Pearson IC correlates predicted scores with valid realized
+returns, and Spearman Rank IC correlates their ranks. We report their daily
+means and define ICIR as mean IC divided by its sample standard deviation,
+without annualization. Constant score or target cross-sections do not receive
+a fabricated correlation; they are treated as undefined.
+
+The prediction-fit measure is
+\begin{equation}
+R^2_{\mathrm{zero}}=
+1-\frac{\sum_{i,t}(y_{i,t}-\hat y_{i,t})^2}
+{\sum_{i,t}y_{i,t}^2},
+\label{eq:r2}
+\end{equation}
+where $y$ is the ex-post standardized label from Equation~\eqref{eq:ztarget}.
+The benchmark is a zero standardized forecast, not a raw-return forecast
+and not the return to holding SPY. Valid-label coverage measures how many
+predicted eligible rows have an observable target. It is not a measure of
+coverage of all listed stocks or completeness of every 5-minute session.
+
+Ranking and squared-error fit measure different properties: the regression
+loss covers all stock-days, whereas the portfolio buys a limited set of
+high-ranked stocks and retains some earlier holdings.
+
+\subsection{Net Return and Risk Measures}
+For $T$ observed daily intervals with net returns $R_t$, the report uses
+\begin{align}
+\mathrm{TotalReturn}&=\frac{V_T}{V_0}-1,&
+\mathrm{CAGR}&=\left(\frac{V_T}{V_0}\right)^{252/T}-1,\\
+\mu_{\mathrm{ann}}&=252\bar R,&
+\sigma_{\mathrm{ann}}&=\sqrt{252}\,s(R_t),\\
+\mathrm{Sharpe}_{0}&=\frac{\mu_{\mathrm{ann}}}{\sigma_{\mathrm{ann}}},&
+\mathrm{MDD}&=\min_t\left(\frac{V_t}{\max_{u\le t}V_u}-1\right).
+\end{align}
+The drawdown path includes initial capital. Volatility uses the sample
+standard deviation. Drawdown is based on daily valuation marks, not the worst
+intraday loss. CAGR and annualized arithmetic return are reported separately
+because they answer different questions.
+
+SPY uses the same execution/valuation dates and fee rate. It is
+bought and held, so its turnover and fee burden are much lower than those of
+the selection strategies. This is an economically relevant difference between
+active trading and the investable alternative, not a reason to force SPY to
+rebalance daily.
+
+Saved portfolio returns are checked against final wealth and fees. Report
+figures are reconstructed from saved predictions and checked against the
+stored metrics. M3's 28 features also match the corresponding M4 columns,
+including row order and labels.
+
+\section{Results: Feature Sets under a Common Ridge Learner}
+\label{sec:mainresults}
+\subsection{Validation Stability}
+\tbl{\ValidationTable}{Validation CAGR in percent and Sharpe ratio at 5 bps per side.
+Each year is a separate forward fold.}{tab:validation}
+
+
+Table~\ref{tab:validation} shows substantial
+period dependence. In 2021, M1 earns 29.18\% CAGR and Sharpe 1.855, close to
+SPY's 31.09\% CAGR but below its 2.290 Sharpe. M2--M4 have much lower returns
+that year. Intraday-only features are therefore not uniformly weak: their
+strongest validation year differs from their later behavior.
+
+In 2022, all four models lose money in CAGR terms, but each loses less than
+SPY's 19.57\%. M4 is the strongest active model at $-4.59$\%, compared with
+$-11.19$\% for M3, $-13.39$\% for M1, and $-14.51$\% for M2. The protection is
+relative, not absolute. The strategy is not market-neutral, hedged, or designed
+to guarantee a positive return in a falling market.
+
+In 2023, M2 leads the active configurations with 30.08\% CAGR. M3 and M4 earn
+about 24.89\% and 25.05\%, while M1 earns 9.45\%. M4 does not dominate
+every validation fold, and the enriched daily model does not always beat
+the basic one. Averaging away these differences would conceal an important
+part of the experiment.
+
+
+
+\subsection{The 2024--2025 Test Period}
+\tbl{\MainTestTable}{Test performance at 5 bps per side over 500 return intervals.
+Arith.\ is annualized arithmetic return; Vol.\ is annualized volatility.
+All return, volatility, and drawdown entries are percentages.}{tab:test}
+\fig{main_performance.png}{Common-date test net wealth and drawdown for the four main models
+and SPY, including entry and final liquidation costs.}{fig:test}
+
+The main ranking by CAGR is M4, M2, M3, and M1. M4 earns 50.83\% total return
+and 23.01\% CAGR, versus SPY's 49.53\% and 22.48\%. The annualized return
+advantage over SPY is only about 0.54 percentage points. It is a modest
+difference in the observed sample, not strong evidence of persistent alpha.
+
+M4's Sharpe is 1.093, below SPY's 1.280, because annualized volatility
+is 20.96\% versus 16.96\%. Its drawdown of $-19.04$\% is slightly shallower
+than SPY's $-19.77$\%. Return and drawdown alone do not fully characterize
+risk-adjusted performance: the model can have a slightly better worst
+drawdown yet a worse ratio of average return to overall variability.
+
+M1 earns 11.32\% CAGR with 14.93\% volatility, the lowest volatility of the
+active models. Its drawdown of $-18.73$\% is also the shallowest of the four.
+However, its Sharpe of 0.793 and markedly lower return do not establish an
+attractive overall substitute for SPY. The intraday-only representation trades
+off much of the observed return for a different risk path.
+
+M2 and M3 produce similar performance. M2 has a 19.86\% CAGR and 0.888 Sharpe,
+while M3 has 19.24\% and 0.881. M3 reduces volatility from 23.52\% to 22.98\%
+and drawdown from $-26.15$\% to $-24.42$\%. Enrichment offers some risk
+reduction in this sample but does not yield a clear improvement in the overall
+return--risk profile.
+
+\subsection{The Nested M3--M4 Comparison}
+Adding the 20 intraday-dependent predictors to M3 raises CAGR from 19.24\%
+to 23.01\%, about 3.77 percentage points. Sharpe rises by about 0.21,
+annualized volatility falls by about 2.02 percentage points, and drawdown
+magnitude falls by about 5.38 percentage points. These changes occur under
+the same fixed Ridge alpha and portfolio rule.
+
+This supports an incremental contribution of the combined intraday block
+within this particular model. It does not show that high-frequency inputs
+are useful in isolation: M1 performs considerably worse. Nor does it establish
+whether improvement comes primarily from one intraday aggregate, the two
+tail interactions, or their joint influence on selected stocks.
+A further interaction-only ablation would be needed to separate those effects.
+
+
+
+\subsection{Annual Test Outcomes}
+\tbl{\AnnualTable}{Annual subdivisions of the test path at 5 bps per side.
+Returns are realized segment totals; SR is the annualized Sharpe within that segment.}
+{tab:annual}
+In 2024, M2 and M3 return 24.31\% and 24.54\%, above M4's 22.23\%, while
+SPY returns 26.94\%. In 2025, M4 returns 23.39\%, above M2's 15.24\%,
+M3's 13.86\%, and SPY's 17.79\%. M4's full-period advantage is not a uniform
+lead at every annual boundary.
+
+M1's annual returns fall from 16.39\% in 2024 to 6.30\% in 2025, with Sharpe
+falling from 1.331 to 0.441. Its strong 2021 validation performance is not a
+stable property of the intraday feature design. The yearly split is descriptive
+and based on exit dates. It is not a separate model-selection exercise or
+a claim about future regimes.
+
+\subsection{Forecast Fit versus Ranking}
+\tbl{\PredictionTable}{Test-period forecast metrics for the main models.
+ICIR is not annualized; $R^2$ is dimensionless.}{tab:prediction}
+
+
+M4 has the highest test Rank IC, approximately 0.01195, compared with 0.00951
+for M3, 0.00814 for M2, and 0.00385 for M1. Its Pearson IC and ICIR also exceed
+the daily-control values. These differences are directionally consistent
+with the portfolio ranking, although no claim of statistical significance is made.
+
+Squared-error fit gives a different ordering. M2 and M3 have small positive
+$R^2$, approximately 0.000056 and 0.000022, while M4's is slightly negative
+at about $-0.000012$. M4 can generate a stronger constrained portfolio
+despite failing to beat the zero standardized forecast in pooled squared
+error. Whole-cross-section error magnitude and tail-sensitive portfolio
+rankings are different objectives.
+
+All four models have approximately 99.9956\% valid-label coverage among
+predicted eligible rows, so their scores use a common evaluation sample.
+
+\subsection{Turnover, Costs, and Execution Diagnostics}
+\tbl{\CostTable}{Test CAGR in percent at three per-side cost scenarios.
+Drag is the zero-cost minus 5-bps CAGR difference in percentage points.}{tab:costs}
+\fig{costs.png}{Cost sensitivity for the main feature comparison and the separate
+48-factor estimator ablation. Each point uses the actual cash ledger at that cost.}
+{fig:costs}
+
+
+Cost sensitivity is economically material even though the learner changes
+only the ranking. M4's zero-cost CAGR is about 26.42\%, falling to 23.01\%
+at 5 bps and 19.70\% at 10 bps. At 10 bps it no longer exceeds SPY's CAGR.
+The apparent active advantage depends on the assumed execution environment
+and is not robust to all flat-cost scenarios.
+
+Active portfolios have similar average one-sided turnover, around
+10.8--10.9\% per session, while SPY's is about 0.20\% after averaging entry
+and exit over the test interval. M4 incurs approximately USD 67,929 in
+simulated fees on the USD 1 million starting-capital path. The dollar total
+is path dependent, not a fixed annual expense ratio. Differences between
+zero- and positive-cost CAGR also reflect compounding and fee-dependent allocations.
+
+All four models finish with zero unliquidated positions. M1 and M4 each have
+one missed planned purchase; no frozen-holding days occur in the test runs.
+The backtest does not enforce a volume-participation cap or model market
+impact, so these results do not establish live trading capacity.
+
+\section{Results: Regularization on the Same 48 Factors}
+\label{sec:ablation}
+\subsection{Selected Estimators and the Fixed Reference}
+\tbl{\AblationTable}{Test results for the 48-factor regularization ablation at 5 bps.
+$k$ counts coefficients with absolute value above $10^{-12}$.
+The fixed reference is standalone M4, not the selected Ridge.}{tab:ablation}
+\fig{ablation_performance.png}{Selected regularizers on identical 48-factor inputs,
+with original fixed Ridge as a dashed reference and SPY as the investable benchmark.}
+{fig:ablation}
+
+Selected Ridge uses alpha 10,000 and earns 23.66\% CAGR with Sharpe 1.103.
+Selected Lasso and Elastic Net use alpha 0.01 and earn 13.35\% and 15.08\%
+CAGR, with Sharpes of 0.675 and 0.755. Their drawdowns, $-24.46$\% and
+$-23.51$\%, are deeper than selected Ridge's $-20.97$\%.
+
+Selected Ridge improves CAGR slightly over fixed M4, from 23.01\% to
+23.66\%, but also has higher volatility and a deeper drawdown. Its Sharpe
+gain is small. It is not an unqualified improvement on every risk dimension.
+The main feature comparison remains fixed at alpha 1000 so these changes
+are not mixed into M3 versus M4.
+
+Lasso is the validation-selected family under Equation~\eqref{eq:selection}.
+Validation prediction fit selected Lasso, while the test-period trading
+comparison favored Ridge. All three selected estimators are reported to
+compare prediction accuracy with portfolio performance.
+
+\subsection{Sparsity and Retained Signals}
+\tbl{\SparseTable}{Nonzero standardized coefficients in the final sparse estimators.
+Other candidate coefficients are zero under the reporting threshold.}{tab:sparse}
+
+
+Ridge retains all 48 coordinates. Lasso retains only \code{reversal_5d}
+and \code{day_return_5}. Its final solution discards every intraday aggregate
+even though the candidate set contains them. Elastic Net retains six variables:
+those two daily signals, relative dollar volume, intraday efficiency,
+intraday VWAP reversal, and intraday regular-session return.
+
+Sparse coefficients do not imply low turnover. Each retained predictor varies
+across stocks and dates, and the portfolio rule still rebalances positions.
+The sparse strategies average roughly 10.9\% daily one-sided turnover,
+similar to Ridge.
+
+\subsection{Why Prediction-Based Selection and Trading Diverge}
+\tbl{\AblationPredictionTable}{Test prediction and turnover diagnostics for
+selected regularizers. $R^2$ is dimensionless; turnover is percent.}{tab:ablationprediction}
+Lasso has test $R^2$ of approximately 0.000040, slightly above selected
+Ridge's 0.000031. Yet its Rank IC is only about 0.00026, compared with
+Ridge's 0.01151. Elastic Net's Rank IC is also much lower, about 0.00119.
+Sparse estimators can reduce broad squared error through shrinkage while
+providing less useful ordering for the upper-tail portfolio.
+
+The prediction loss does not account for portfolio replacement limits,
+transaction costs, or the concentration of mistakes among selected stocks.
+This helps explain why a better prediction $R^2$ need not produce a better
+portfolio. Selecting by validation CAGR or Sharpe would test a different
+criterion from the one used here.
+
+\section{Discussion and Limitations}
+\label{sec:limits}
+The clearest result is the improvement from M3 to M4 under a common learner
+and trading rule. Intraday-only M1 performs much worse, suggesting that daily
+context and intraday summaries are more useful together. The 20-feature block
+also contains two interactions; another ablation would be needed to separate
+them from the 18 intraday aggregates.
+
+M3 does not clearly improve on the simpler M2 baseline, and sparse
+regularization does not improve the selected portfolio. Adding features or
+removing coefficients therefore offers no automatic performance gain.
+These findings apply to the specified features, small parameter grid, and
+portfolio rule.
+
+Only three validation years and two test years are evaluated. No formal
+significance test or confidence interval is reported for model differences.
+M4's small CAGR advantage over SPY should be read alongside its lower Sharpe
+and cost sensitivity. A return difference from SPY is not a risk-adjusted
+alpha estimate.
+
+Opening-price fills, fractional units, flat costs, and terminal settlement
+proxies simplify execution. Drawdown uses daily marks and misses intraday
+extremes. The data section remains to be completed. Useful extensions include
+rolling retraining and testing whether a portfolio-based validation criterion
+improves the regularization choice.
+
+\section{Reproducibility}
+\label{sec:repro}
+From the project root, the main commands are:
+\begin{verbatim}
+python -m pip install -r requirements.txt
+python model1.py
+python model2.py
+python model3.py
+python model4.py
+python model4_ablation.py
+python utils/build_report_assets.py --latest
+\end{verbatim}
+The first four scripts produce the fixed-Ridge comparison; the fifth runs the
+regularization ablation. The final command builds the combined report tables
+and figures from completed runs without retraining. Use \code{--rebuild} on
+a model script to reconstruct its features from the original local data.
+
+Each run saves a fitted model bundle, metrics, predictions, two figures,
+metadata, and notes in a model-numbered timestamp directory under
+\code{output}. Feature definitions are in the model scripts and
+\code{utils/features.py}; fitting is in \code{utils/experiment.py}; portfolio
+accounting is in \code{utils/backtest.py}.
+
+\tbl{\VersionTable}{Recorded package versions. The declared seed is zero;
+solvers use deterministic ordering.}{tab:versions}
+The report uses the completed M1 run from 7 November at 22:31:25, M2 from
+8 November at 12:15:14, M3 from 8 November at 13:45:24, M4 from 7 November
+at 22:52:20, and the ablation from 8 November at 12:15:14 (2026).
+Full run identifiers and settings are retained in their metadata.
+
+\section{Conclusion}
+Combining daily and intraday-derived signals gives the strongest portfolio
+among the four fixed-Ridge models. M4 earns 23.01\% test CAGR at 5 bps per
+side, compared with 19.86\% for M2 and 19.24\% for M3. Its 1.093 Sharpe
+remains below SPY's 1.280, and its modest CAGR advantage disappears at 10 bps.
+
+Lasso wins the validation prediction comparison but selected Ridge produces
+better test trading performance. The project therefore shows both the value
+of complementary inputs and the need to evaluate forecasts through an
+explicit portfolio and transaction-cost rule.
+
+\clearpage
+\begin{thebibliography}{9}
+\bibitem{chinco}
+Chinco, A., Clark-Joseph, A. D., and Ye, M. (2019).
+Sparse Signals in the Cross-Section of Returns.
+\emph{The Journal of Finance}, 74(1), 449--492.
+\url{https://doi.org/10.1111/jofi.12733}.
+\bibitem{kelly}
+Kelly, B. T., Malamud, S., and Zhou, K. (2024).
+The Virtue of Complexity in Return Prediction.
+\emph{The Journal of Finance}, 79(1), 459--501.
+\url{https://doi.org/10.1111/jofi.13298}.
+\bibitem{alpha101}
+Kakushadze, Z. (2016). 101 Formulaic Alphas.
+\emph{Wilmott}, 2016(84), 72--81.
+\url{https://arxiv.org/abs/1601.00991}.
+\bibitem{sklearnridge}
+Scikit-learn developers. Ridge, version 1.7.2 documentation.
+\url{https://scikit-learn.org/1.7/modules/generated/sklearn.linear_model.Ridge.html}.
+\bibitem{sklearnlasso}
+Scikit-learn developers. Lasso, version 1.7.2 documentation.
+\url{https://scikit-learn.org/1.7/modules/generated/sklearn.linear_model.Lasso.html}.
+\bibitem{sklearnelastic}
+Scikit-learn developers. ElasticNet, version 1.7.2 documentation.
+\url{https://scikit-learn.org/1.7/modules/generated/sklearn.linear_model.ElasticNet.html}.
+\end{thebibliography}
+
+\clearpage
+\appendix
+\section{Feature Definitions and Implementation Details}
+\label{app:basic}
+Write $c_t,o_t$ for adjusted daily close and open. Raw daily close, open,
+high, low, volume, and VWAP are $C_t,O_t,H_t,L_t,V_t,W_t$, respectively;
+$v_t$ denotes adjusted volume.
+Let $r_t=c_t/c_{t-1}-1$, $D_t=W_tV_t$, and let $\operatorname{mean}_h$ and
+$\operatorname{sd}_h$ denote trailing $h$-session mean and sample standard
+deviation. A subscript $t-1$ on a rolling statistic means it is lagged by a
+session. The target and portfolio are not predictors in this catalogue.
+
+\subsection{The 16 Basic Daily Inputs in M2}
+\begin{center}\small
+\inlinecaption{table}{All M2 predictors. Every lookback ends no later than signal close.}
+\begin{tabular}{p{0.37\linewidth}p{0.56\linewidth}}
+\toprule Predictor & Definition\\\midrule
+\code{return_1d} & $r_t$\\
+\code{return_5d} & $c_t/c_{t-5}-1$\\
+\code{return_20d} & $c_t/c_{t-20}-1$\\
+\code{momentum_63_skip5} & $c_{t-5}/c_{t-63}-1$\\
+\code{momentum_252_skip21} & $c_{t-21}/c_{t-252}-1$\\
+\code{day_return} & $c_t/o_t-1$\\
+\code{overnight_return} & $o_t/c_{t-1}-1$\\
+\code{volatility_5d} & $\operatorname{sd}_5(r)_t$\\
+\code{volatility_20d} & $\operatorname{sd}_{20}(r)_t$\\
+\code{daily_range} & $(H_t-L_t)/O_t$\\
+\code{close_location} & $(2C_t-H_t-L_t)/(H_t-L_t)$\\
+\code{ma_deviation_5d} & $c_t/\operatorname{mean}_5(c)_t-1$\\
+\code{ma_deviation_20d} & $c_t/\operatorname{mean}_{20}(c)_t-1$\\
+\code{relative_volume_5d} & $v_t/\operatorname{mean}_5(v)_{t-1}$\\
+\code{relative_volume_20d} & $v_t/\operatorname{mean}_{20}(v)_{t-1}$\\
+\code{log_dollar_volume_20d} & $\log\{\operatorname{mean}_{20}(CV)_t\}$\\
+\bottomrule
+\end{tabular}\end{center}
+
+\clearpage
+\subsection{The 28 Daily Inputs Shared by M3 and M4}
+Define daytime return $d_t=c_t/o_t-1$, overnight return $n_t=o_t/c_{t-1}-1$,
+and market return $r_t^m$ from adjusted SPY closes. The residual is
+$e_t=r_t-\beta_{t-1}r_t^m$, where beta uses trailing 126-session
+covariance/variance with at least 100 observations, then is lagged one
+session. Let $\sigma_t=\operatorname{sd}_{20}(r)_t$.
+$\operatorname{rank}_{cs}$ means a percentile rank among eligible stocks.
+The six formulaic factors are masked by that same eligibility definition.
+
+{\small
+\begin{center}
+\inlinecaption{table}{Exact daily-only subset of M4. These 28 columns form M3.}
+\begin{tabular}{p{0.40\linewidth}p{0.53\linewidth}}
+\toprule Predictor & Definition or construction\\\midrule
+\code{reversal_1d} & $-r_t$\\
+\code{reversal_5d} & $1-c_t/c_{t-5}$\\
+\code{reversal_20d} & $1-c_t/c_{t-20}$\\
+\code{momentum_63_skip5} & $c_{t-5}/c_{t-63}-1$\\
+\code{momentum_252_skip21} & $c_{t-21}/c_{t-252}-1$\\
+\code{day_return_1} & $d_t$\\
+\code{day_return_5} & $\exp\{\sum_{j=0}^{4}\log(1+d_{t-j})\}-1$\\
+\code{day_return_20} & Same compounding over 20 sessions\\
+\code{night_return_1} & $n_t$\\
+\code{night_return_5} & $\exp\{\sum_{j=0}^{4}\log(1+n_{t-j})\}-1$\\
+\code{night_return_20} & Same compounding over 20 sessions\\
+\code{residual_reversal_1} & $-e_t/\sigma_{t-1}$\\
+\code{residual_reversal_5} & $-\sum_{j=0}^{4}e_{t-j}/(\sqrt{5}\sigma_{t-1})$\\
+\code{volatility_20} & $\sigma_t$\\
+\code{illiquidity_20} & $10^6\operatorname{mean}_{20}(|r|/D)_t$\\
+\code{relative_dollar_volume} & $D_t/\operatorname{mean}_{20}(D)_{t-1}$\\
+\code{normalized_alpha041} & $(\sqrt{H_tL_t}-W_t)/C_t$\\
+\code{normalized_vwap_reversal} & $(W_t-C_t)/C_t$\\
+\code{close_location_reversal} & $-(2C_t-H_t-L_t)/(H_t-L_t)$\\
+\code{alpha002} & Negative 6-session correlation of cross-sectional ranks of
+$\Delta_2\log v$ and $(C-O)/O$\\
+\code{alpha003} & Negative 10-session correlation of cross-sectional ranks of $O$ and $V$\\
+\code{alpha006} & Negative 10-session correlation of $o$ and $v$\\
+\code{alpha012} & $-\operatorname{sign}(\Delta v_t)\Delta c_t/a_t$,
+where $a_t$ is the adjustment factor\\
+\code{alpha041} & $\sqrt{H_tL_t}-W_t$\\
+\code{alpha101} & $(C_t-O_t)/(H_t-L_t+0.001)$\\
+\code{residual_reversal_x_illiquidity} & Residual reversal (1 session)
+times the cross-sectional percentile rank of 20-session illiquidity\\
+\code{residual_reversal_x_volume} & Residual reversal (1 session)
+times relative dollar volume clipped to $[0.2,5]$\\
+\code{gap_reversal_after_disagreement} & $-n_t$ if daytime and overnight
+returns have different signs; otherwise zero\\
+\bottomrule
+\end{tabular}\end{center}}
+
+\clearpage
+\subsection{The 18 Intraday Aggregates and Two Tail Interactions}
+For regular-session bars $b$, define log return
+$u_b=\log(C_b/C_{b-1})$, using the first bar's own open in place of the absent
+previous close. Let $U=\sum_b V_b$, $RV=(\sum_b u_b^2)^{1/2}$, $O_s$ be the
+session opening bar's open, and $C_s$ the final bar's close. Head and tail
+windows are measured from session boundaries, including half days.
+
+{\small
+\begin{center}
+\inlinecaption{table}{Intraday predictors in M1 and M4. Executable names have an
+\texttt{intraday\_} prefix.}
+\begin{tabular}{p{0.40\linewidth}p{0.53\linewidth}}
+\toprule Name after prefix & Definition\\\midrule
+\code{head30} & First-30-minute endpoint close divided by $O_s$, minus one\\
+\code{head60} & First-60-minute endpoint close divided by $O_s$, minus one\\
+\code{tail30} & $C_s$ divided by the opening price of the last-30-minute window, minus one\\
+\code{tail60} & Same for the last 60 minutes\\
+\code{head_volume_share} & First-30-minute volume divided by $U$\\
+\code{tail_volume_share} & Last-30-minute volume divided by $U$\\
+\code{rv} & $RV$\\
+\code{downside_share} & $\sum_b u_b^2{\bf1}(u_b<0)/\sum_bu_b^2$\\
+\code{skew} & $\sum_bu_b^3/(\sum_bu_b^2)^{3/2}$; a path-shape statistic\\
+\code{efficiency} & $|\log(C_s/O_s)|/\sum_b|u_b|$\\
+\code{vwap_reversal} & $1-C_s/\{\sum_b VWAP_b V_b/U\}$\\
+\code{range} & $(\max_b H_b-\min_b L_b)/O_s$\\
+\code{close_location_reversal} & $-(2C_s-\max H-\min L)/(\max H-\min L)$\\
+\code{weighted_bar_return} & $\sum_b u_bV_b/U$\\
+\code{signed_bar_volume} & $\sum_b\operatorname{sign}(u_b)V_b/U$\\
+\code{largest_bar_share} & $\max_b|u_b|/RV$\\
+\code{return_volume_corr} & Within-session correlation of $u_b$ and $\log V_b$\\
+\code{rth_return} & $C_s/O_s-1$\\
+\bottomrule
+\end{tabular}\end{center}}
+
+M4 additionally includes \code{tail_reversal_risk_scaled}, equal to the
+negative tail-30 return divided by $RV$, and
+\code{tail_reversal_x_activity}, equal to negative tail-30 return times the
+tail-volume share divided by its lagged 20-session mean (minimum 15
+observations). Thus the nested comparison adds 18 aggregates plus two
+interactions. Non-finite values remain missing and use the fold's imputer.
+
+\section{Team Contributions}
+Team names and contributions have not been supplied and are intentionally
+not inferred from model identifiers.
+\begin{table}[htbp]\centering\small
+\begin{tabular}{p{0.22\linewidth}p{0.34\linewidth}p{0.34\linewidth}}\toprule
+Member & Main contribution & Review or validation\\\midrule
+{[Name and ID]} & [To be completed] & [To be completed]\\
+{[Name and ID]} & [To be completed] & [To be completed]\\
+{[Name and ID]} & [To be completed] & [To be completed]\\
+{[Name and ID]} & [To be completed] & [To be completed]\\\bottomrule
+\end{tabular}
+\end{table}
+\end{document}

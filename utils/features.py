@@ -300,6 +300,22 @@ def make_daily_factors(
     }
 
 
+def make_daily_bank(p, universe, spy_return):
+    """The 28 Model 4 factors that require daily data only."""
+    bank = make_daily_factors(p, spy_return)
+    bank.update(make_alpha101_factors(p, universe))
+    bank["residual_reversal_x_illiquidity"] = bank[
+        "residual_reversal_1"
+    ] * bank["illiquidity_20"].where(universe).rank(axis=1, pct=True)
+    bank["residual_reversal_x_volume"] = bank[
+        "residual_reversal_1"
+    ] * bank["relative_dollar_volume"].clip(0.2, 5)
+    bank["gap_reversal_after_disagreement"] = -bank["night_return_1"] * (
+        np.sign(bank["night_return_1"]) != np.sign(bank["day_return_1"])
+    )
+    return bank
+
+
 def eligible_universe(
     p: dict[str, pd.DataFrame], calendar: pd.DatetimeIndex
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -383,8 +399,7 @@ def build_feature_table(
     )
 
     spy = benchmark.set_index("date").adj_close.sort_index().reindex(calendar)
-    bank = make_daily_factors(p, spy.pct_change(fill_method=None))
-    bank.update(make_alpha101_factors(p, universe))
+    bank = make_daily_bank(p, universe, spy.pct_change(fill_method=None))
 
     intra = pd.read_parquet(intraday_path)
     intra["date"] = pd.to_datetime(intra.date)
@@ -400,12 +415,6 @@ def build_feature_table(
     }
     bank.update({"intraday_" + name: values for name, values in intrabank.items()})
 
-    bank["residual_reversal_x_illiquidity"] = bank[
-        "residual_reversal_1"
-    ] * bank["illiquidity_20"].where(universe).rank(axis=1, pct=True)
-    bank["residual_reversal_x_volume"] = bank[
-        "residual_reversal_1"
-    ] * bank["relative_dollar_volume"].clip(0.2, 5)
     bank["tail_reversal_risk_scaled"] = (
         -bank["intraday_tail30"] / bank["intraday_rv"]
     )
@@ -414,9 +423,6 @@ def build_feature_table(
         -bank["intraday_tail30"]
         * tail_share
         / tail_share.rolling(20, min_periods=15).mean().shift(1)
-    )
-    bank["gap_reversal_after_disagreement"] = -bank["night_return_1"] * (
-        np.sign(bank["night_return_1"]) != np.sign(bank["day_return_1"])
     )
 
     missing = [name for name in factor_names if name not in bank]
