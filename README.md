@@ -17,7 +17,7 @@ sp500/
 
 ### Alternative: rebuild the data from original sources
 
-The companion [DSA5205 data pipeline](https://github.com/Apostas1/DSA5205-data-pipeline) provides historical membership construction, Alpaca bar downloads, SEC fundamentals, security matching, and daily-panel construction. The local copy is in `dsa5205_data_pipeline/`; see its [README](dsa5205_data_pipeline/README.md) for provider setup and processing rules. The four forecasting models use price-volume features; ROE and other fundamentals are not model inputs.
+The companion [DSA5205 data pipeline](https://github.com/Apostas1/DSA5205-data-pipeline) provides historical membership construction, Alpaca bar downloads, SEC fundamentals, security matching, and daily-panel construction. See its [README](dsa5205_data_pipeline/README.md) for provider setup and processing rules. The four forecasting models use price-volume features; ROE and other fundamentals are not model inputs.
 
 ```powershell
 git clone https://github.com/Apostas1/DSA5205-data-pipeline.git dsa5205_data_pipeline
