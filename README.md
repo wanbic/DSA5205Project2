@@ -174,12 +174,12 @@ Each bundle has `model`, `transform`, and `feature_names` fields. Coefficients a
 
 ## Rebuild the report
 
-`report.tex` contains the English report and `report.pdf` is the compiled report. The report includes data sources, coverage, cleaning rules, the team roster, and member contributions. Collection statistics and cleaning rules are checked against the local files and model code. Tables are generated from completed experiment outputs, and figures use reconstructed ledgers checked against their recorded metrics.
+`Group_6_Report.tex` contains the English report and `Group_6_Report.pdf` is the compiled report. The report includes data sources, coverage, cleaning rules, the team roster, and member contributions. Collection statistics and cleaning rules are checked against the local files and model code. Tables are generated from completed experiment outputs, and figures use reconstructed ledgers checked against their recorded metrics.
 
 ```powershell
 python utils/build_report_assets.py --latest
-pdflatex -disable-installer -interaction=nonstopmode -halt-on-error report.tex
-pdflatex -disable-installer -interaction=nonstopmode -halt-on-error report.tex
+pdflatex -interaction=nonstopmode -halt-on-error Group_6_Report.tex
+pdflatex -interaction=nonstopmode -halt-on-error Group_6_Report.tex
 ```
 
-Run these commands after all five experiments complete. PDF compilation requires a LaTeX distribution such as MiKTeX or TeX Live with `pdflatex` available on the command path. Use the project Python environment for the asset builder. The asset builder creates `report_assets/tables.tex` and six combined figures. Its default pins the report's original run IDs; `--latest` finds each configuration's newest completed run after a fresh reproduction. Keep `report_assets` with `report.tex`. Current paths and software versions appear in the report. Figures and tables should be regenerated together if an experiment changes.
+Run these commands after all five experiments complete. PDF compilation requires a LaTeX distribution such as MiKTeX or TeX Live with `pdflatex` available on the command path. Use the project Python environment for the asset builder. The asset builder creates `report_assets/tables.tex` and six combined figures. Its default pins the report's original run IDs; `--latest` finds each configuration's newest completed run after a fresh reproduction. Keep `report_assets` with `Group_6_Report.tex`. Current paths and software versions appear in the report. Figures and tables should be regenerated together if an experiment changes.
