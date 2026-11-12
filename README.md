@@ -69,16 +69,6 @@ python model3.py
 python model4_ablation.py
 ```
 
-With the existing local environment:
-
-```powershell
-conda run -n dsa5205proj2 python model1.py
-conda run -n dsa5205proj2 python model2.py
-conda run -n dsa5205proj2 python model3.py
-conda run -n dsa5205proj2 python model4.py
-conda run -n dsa5205proj2 python model4_ablation.py
-```
-
 ### 3. Check the results
 
 Each main model creates `output/modelN_YYYYMMDD_HHMMSS_microseconds/` (N = 1, 2, 3, or 4); the separate ablation creates `output/model4_ablation_YYYYMMDD_HHMMSS_microseconds/`. Both use Beijing time and contain seven files:
