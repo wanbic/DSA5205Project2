@@ -4,7 +4,7 @@
 
 ### 1. Download and extract the prepared data
 
-Under the group's collection setup, Alpaca's API rate limits make downloading the S&P 500 data take approximately 7-11 hours and Russell 2000 data approximately 13 hours. Therefore, we provide the prepared S&P 500 dataset for download so the reported experiments can be reproduced without repeating the lengthy data acquisition. The model scripts run locally without an Alpaca API key.
+Under the group's collection setup, Alpaca's API rate limits make downloading the S&P 500 data take approximately 7-11 hours. Therefore, we provide the prepared S&P 500 dataset for download so the reported experiments can be reproduced without repeating the lengthy data acquisition. The model scripts run locally without an Alpaca API key.
 
 Download the prepared `sp500` dataset from the [shared SharePoint folder](https://nusu-my.sharepoint.com/shared?listurl=https%3A%2F%2Fnusu%2Dmy%2Esharepoint%2Ecom%2Fpersonal%2Fliyanzhao%5Fu%5Fnus%5Fedu%2FDocuments&id=%2Fpersonal%2Fliyanzhao%5Fu%5Fnus%5Fedu%2FDocuments%2Fdata%5Fshare&shareLink=1&ga=1). Extract the archive into the project root, alongside `model1.py`, so these paths exist:
 
