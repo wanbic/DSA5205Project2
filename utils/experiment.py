@@ -161,7 +161,7 @@ def write_notes(output, summary, model_name, description):
         "ICIR is daily mean IC divided by sample standard deviation, without annualization.\n\n"
         "```text\n" + table.to_string(index=False) + "\n```\n\n"
         "metrics.csv combines period-level results at 0/5/10 bps and annual results at 5 bps. "
-        "A blank year identifies a full-period row. predictions.parquet supports later baseline comparisons. "
+        "A blank year identifies a full-period row. predictions.parquet contains stock-level forecasts and labels for model comparison. "
         "run_info.json records training counts, settings, package versions, and successful ledger checks.\n",
         encoding="utf-8")
 

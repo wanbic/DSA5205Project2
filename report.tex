@@ -9,7 +9,6 @@
 \setlength{\emergencystretch}{2em}
 \renewcommand{\arraystretch}{1.12}
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
-\newcommand{\blankdata}{\par\noindent\textit{[Intentionally left blank for the data section.]}\par}
 \newcommand{\fig}[3]{\begin{figure}[htbp]\centering
 \includegraphics[width=\linewidth]{report_assets/#1}
 \caption{#2}\label{#3}\end{figure}}
@@ -32,7 +31,12 @@ and Regularization\par}
 \vspace{12mm}
 {\large Group 6\par}
 \vspace{3mm}
-{\normalsize Team members and student IDs: [to be completed]\par}
+{\normalsize
+Wan Bicheng - A0356727R \\
+Guo Jinghang - A0353941B \\
+Zhao Liyan \\
+Chen Yifan \\
+\par}
 \vspace{5mm}
 {\normalsize 8 November 2026\par}
 \vspace{12mm}
@@ -54,13 +58,9 @@ At 5 basis points per side, the complete fixed-penalty Ridge model earns a
 Validation selects Lasso by prediction fit, but selected Ridge produces better
 test-period portfolio performance. The results emphasize complementarity of
 signals, the limits of feature expansion, and the distinction between
-statistical accuracy and economic value. The data section is deliberately
-reserved for later completion.
+statistical accuracy and economic value.
 \end{abstract}
 \end{minipage}
-\vfill
-{\small Report draft: methods and results are populated from completed runs;
-data documentation and team details remain to be completed.\par}
 \end{titlepage}
 
 \section{Introduction and Research Questions}
@@ -89,12 +89,104 @@ ablation changes the learner while fixing M4's 48 features.
 
 \section{Market, Data Sources, and Cleaning}
 \label{sec:data}
+The source dataset covers historical S\&P~500 constituents from 2 January 2018
+to 15 October 2026. Times use New York time and the NYSE calendar, with regular
+sessions from 09:30 to 16:00 and early closes at 13:00. Prices are in US dollars.
+Daily bars and 5-minute bars are downloaded separately: the models use the
+prepared daily panel for daily predictors, and aggregate regular-session
+5-minute bars for intraday predictors. The reported experiments end in 2025;
+the later observations in the source dataset are not used in fitting,
+validation, or testing.
+
 \subsection{Original Providers and Lawful Data Access}
-\blankdata
+\label{sec:data-providers}
+\begin{table}[htbp]\centering\small
+\caption{Original data providers and acquisition channels.}
+\label{tab:data-sources}
+\begin{tabular}{p{0.20\linewidth}p{0.31\linewidth}p{0.39\linewidth}}
+\toprule Input & Original provider & Acquisition channel\\\midrule
+Index membership & S\&P Dow Jones Indices constituent changes &
+Public \code{fja05680/sp500} repository, commit \code{a2430f2}\\
+Daily and 5-minute bars & Exchange trades consolidated through the SIP &
+Alpaca Market Data API v2, historical SIP feed\\
+Adjustment factors & Vendor-applied corporate actions &
+Alpaca raw, split-adjusted, and fully adjusted daily bars\\\bottomrule
+\end{tabular}
+\end{table}
+The group obtained the data through the public membership repository and
+Alpaca's authenticated API using its own free-plan credentials. The repository
+version is recorded in \code{sp500/universe/source.json}.
+The source repository is publicly accessible\footnote{\url{https://github.com/fja05680/sp500}};
+Alpaca's historical SIP access without a subscription requires the query end
+to be at least 15 minutes old\footnote{\url{https://docs.alpaca.markets/us/docs/market-data-faq}}.
+This historical access differs from the free live IEX feed. Data were accessed
+through permitted interfaces under the applicable usage conditions; credentials
+are not part of the report or submitted source code.
+
 \subsection{Sample Coverage and Security Identifiers}
-\blankdata
+\label{sec:data-coverage}
+The collection spans 2,209 trading sessions and includes 365 calendar days
+of pre-inclusion history and 90 days after removal, where available. These
+buffers support lookbacks and exits; they do not expand the strategy's
+membership eligibility. The download completed on 16 October 2026 contains
+114,213,922 5-minute rows and 1,281,969 raw daily rows in 695 ticker files
+per frequency, including SPY. The merged daily panel contains 1,280,621 rows
+and 669 security identifiers, including the benchmark. These are collection
+counts, not counts of eligible model observations.
+
+A security master resolves ticker changes and reuse. A new symbol beginning
+on the next trading session is linked to the previous symbol when its opening
+price is within 6\% of the preceding close. There are 31 recorded rename links,
+including FB to META, and three duplicate-history links. Large discontinuities,
+such as UTX to RTX, are kept separate. Six reused symbols (IR, ARNC, FOXA, FOX,
+CZR, and DOC) are split by issuer history. Securities use the latest ticker,
+with a starting-year suffix where needed. This continuity rule is a practical
+matching heuristic rather than an official permanent identifier.
+
 \subsection{Historical Membership, Adjustments, and Missing Observations}
-\blankdata
+\label{sec:data-cleaning}
+\paragraph{Membership and terminal returns.}
+The historical file provides 698 membership spells, including 195 that ended
+during the sample. A dated \code{in_index} flag restricts selection to historical
+members rather than today's constituents. For 71 securities marked as delisted,
+the prepared panel assigns terminal-return proxies: $-100\%$ for SIVB, SBNY,
+and FRC, and zero for the other 68 cases, mostly acquisitions or other exits.
+These are settlement assumptions, not verified realized proceeds. They remain
+a limitation even though departed securities are retained in the dataset.
+
+\paragraph{Adjustments.}
+Let $s_t$ be split-adjusted close divided by raw close and $a_t$ be fully
+adjusted close divided by raw close. The prepared panel uses $a_tP_t$ for
+adjusted prices and $V_t/s_t$ for adjusted volumes. Factors are backward
+adjusted to 15 October 2026 and chained across linked ticker changes.
+Raw columns are retained. Intraday path summaries in the model code use raw
+regular-session bars; daily return and execution calculations use the
+panel's adjusted prices. These two input conventions are kept distinct.
+
+\paragraph{Coverage and missing values.}
+About 87\% of downloaded bars are in regular hours. The collection notes
+report regular-session data on at least 99\% of relevant membership dates for
+694 of the 695 tickers. In the prepared panel, 93.7\% of constituent-days have
+all expected bars: normally 78, or 42 on a half day. Six dates between May 2018
+and March 2022 have especially sparse coverage. Observed and expected bar
+counts are recorded rather than filling missing raw bars. The source panel
+also leaves its daily return field undefined across gaps longer than ten
+sessions; the models construct their own next-open target.
+
+The actual intraday feature builder requires at least 95\% bar coverage and
+valid session endpoints. Otherwise its 18 intraday values are set to missing;
+the stock-day can remain eligible, and training-median imputation handles
+those missing predictors. There is no blanket deletion of all incomplete days.
+
+\paragraph{Model eligibility and unusual observations.}
+All models require historical membership, raw close of at least USD 5,
+positive volume and adjustment factor, consistent OHLC bounds, 20-session
+average dollar volume of at least USD 10 million, and 60 consecutive observed
+closes. An adjustment warning excludes the current and following nine
+sessions. Non-finite predictor values become missing and use training-only
+imputation. There is no general winsorization; the residual-reversal/activity
+interaction clips relative dollar volume to $[0.2,5]$. These filters and the
+shared target ensure consistent samples across the four models.
 
 \section{Experimental Design and Feature Architecture}
 \label{sec:features}
@@ -488,7 +580,7 @@ within this particular model. It does not show that high-frequency inputs
 are useful in isolation: M1 performs considerably worse. Nor does it establish
 whether improvement comes primarily from one intraday aggregate, the two
 tail interactions, or their joint influence on selected stocks.
-A further interaction-only ablation would be needed to separate those effects.
+The reported comparison measures their combined contribution.
 
 
 
@@ -615,8 +707,8 @@ criterion from the one used here.
 The clearest result is the improvement from M3 to M4 under a common learner
 and trading rule. Intraday-only M1 performs much worse, suggesting that daily
 context and intraday summaries are more useful together. The 20-feature block
-also contains two interactions; another ablation would be needed to separate
-them from the 18 intraday aggregates.
+also contains two interactions, so their effects are evaluated jointly with
+the 18 intraday aggregates.
 
 M3 does not clearly improve on the simpler M2 baseline, and sparse
 regularization does not improve the selected portfolio. Adding features or
@@ -632,12 +724,19 @@ alpha estimate.
 
 Opening-price fills, fractional units, flat costs, and terminal settlement
 proxies simplify execution. Drawdown uses daily marks and misses intraday
-extremes. The data section remains to be completed. Useful extensions include
-rolling retraining and testing whether a portfolio-based validation criterion
-improves the regularization choice.
+extremes. The reported results use fixed test-period coefficients and
+prediction-based validation selection.
 
+\noindent\begin{minipage}{\linewidth}
 \section{Reproducibility}
 \label{sec:repro}
+
+Download the prepared \code{sp500} dataset from the
+\href{https://nusu-my.sharepoint.com/shared?listurl=https\%3A\%2F\%2Fnusu\%2Dmy\%2Esharepoint\%2Ecom\%2Fpersonal\%2Fliyanzhao\%5Fu\%5Fnus\%5Fedu\%2FDocuments\&id=\%2Fpersonal\%2Fliyanzhao\%5Fu\%5Fnus\%5Fedu\%2FDocuments\%2Fdata\%5Fshare\&shareLink=1\&ga=1}{shared SharePoint folder (prepared data download)}.
+Extract the archive into the project root, alongside \code{model1.py},
+so that \code{sp500/panel/daily.parquet} and
+\code{sp500/raw/alpaca/} are available at those relative paths.
+
 From the project root, the main commands are:
 \begin{verbatim}
 python -m pip install -r requirements.txt
@@ -648,6 +747,8 @@ python model4.py
 python model4_ablation.py
 python utils/build_report_assets.py --latest
 \end{verbatim}
+\end{minipage}
+
 The first four scripts produce the fixed-Ridge comparison; the fifth runs the
 regularization ablation. The final command builds the combined report tables
 and figures from completed runs without retraining. Use \code{--rebuild} on
@@ -661,10 +762,10 @@ accounting is in \code{utils/backtest.py}.
 
 \tbl{\VersionTable}{Recorded package versions. The declared seed is zero;
 solvers use deterministic ordering.}{tab:versions}
-The report uses the completed M1 run from 7 November at 22:31:25, M2 from
-8 November at 12:15:14, M3 from 8 November at 13:45:24, M4 from 7 November
-at 22:52:20, and the ablation from 8 November at 12:15:14 (2026).
-Full run identifiers and settings are retained in their metadata.
+Run identifiers, timestamps, and settings are recorded in each output folder's
+metadata. The prepared-data download supports the commands above. Rebuilding
+directly from providers additionally requires the original download and
+security-master/panel-build scripts.
 
 \section{Conclusion}
 Combining daily and intraday-derived signals gives the strongest portfolio
@@ -834,15 +935,13 @@ observations). Thus the nested comparison adds 18 aggregates plus two
 interactions. Non-finite values remain missing and use the fold's imputer.
 
 \section{Team Contributions}
-Team names and contributions have not been supplied and are intentionally
-not inferred from model identifiers.
 \begin{table}[htbp]\centering\small
-\begin{tabular}{p{0.22\linewidth}p{0.34\linewidth}p{0.34\linewidth}}\toprule
-Member & Main contribution & Review or validation\\\midrule
-{[Name and ID]} & [To be completed] & [To be completed]\\
-{[Name and ID]} & [To be completed] & [To be completed]\\
-{[Name and ID]} & [To be completed] & [To be completed]\\
-{[Name and ID]} & [To be completed] & [To be completed]\\\bottomrule
+\begin{tabular}{p{0.24\linewidth}p{0.66\linewidth}}\toprule
+Member & Contributions\\\midrule
+Wan Bicheng & Report writing, code implementation, and video production.\\
+Guo Jinghang & Report writing and Model 4 development.\\
+Zhao Liyan & Report writing and Models 1 and 2 development.\\
+Chen Yifan & Report writing and Model 3 development.\\\bottomrule
 \end{tabular}
 \end{table}
 \end{document}

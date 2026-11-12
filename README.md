@@ -55,7 +55,7 @@ All runtime dependencies from the supplied team model have been migrated into `u
 - `experiment.py`: shared Ridge/Lasso/Elastic Net fitting, time splits, evaluation, and the seven output files.
 - `factor_definitions.json`: factor descriptions and feature order.
 
-The original model kit is no longer required and can be deleted. Both cached runs and full raw-data rebuilds use only the selected model script, `utils`, and the local `sp500` dataset. Migrated calculation functions retain the supplied implementation; unused training commands, report exporters, and frozen-forecast replay code were excluded.
+Both cached runs and full feature rebuilds use the selected model script, `utils`, and the local `sp500` dataset. All runtime dependencies are included in this repository.
 
 Model 4 uses 48 daily/intraday features, training-only median imputation and standardization, and Ridge(alpha=1000). Validation expands from 2018 through the preceding year-end for 2021, 2022, and 2023. Only labels whose exit date is known by the training cutoff enter training. The final model trains through 2023-12-29. Parameters are inherited from the supplied model; no new tuning is performed. The testing period is 2024-2025, using the final model fitted on 2018-2023 data.
 
@@ -150,12 +150,12 @@ lasso_bundle = comparison["Lasso"]
 elasticnet_bundle = comparison["ElasticNet"]
 ```
 
-Each bundle has `model`, `transform`, and `feature_names` fields. Coefficients are in `model.coef_`, in `feature_names` order. Historical Model 2 Ridge/Lasso comparison folders are earlier experiments; new `model2.py` runs contain only Ridge and SPY.
+Each bundle has `model`, `transform`, and `feature_names` fields. Coefficients are in `model.coef_`, in `feature_names` order. `model2.py` compares Ridge with SPY.
 
 
 ## Report
 
-`report.tex` contains the English report and `report.pdf` is its compiled preview. Data-source, coverage, and cleaning subsections are intentionally left blank; the group roster and contribution entries also await completion. Tables are generated from completed experiment outputs, and figures use reconstructed ledgers checked against their recorded metrics.
+`report.tex` contains the English report and `report.pdf` is the compiled report. The report includes data sources, coverage, cleaning rules, the team roster, and member contributions. Collection statistics and cleaning rules are checked against the local files and model code. Tables are generated from completed experiment outputs, and figures use reconstructed ledgers checked against their recorded metrics.
 
 ```powershell
 python utils/build_report_assets.py --latest
