@@ -731,8 +731,11 @@ prediction-based validation selection.
 \section{Reproducibility}
 \label{sec:repro}
 
-Download the prepared \code{sp500} dataset from the
-\href{https://nusu-my.sharepoint.com/shared?listurl=https\%3A\%2F\%2Fnusu\%2Dmy\%2Esharepoint\%2Ecom\%2Fpersonal\%2Fliyanzhao\%5Fu\%5Fnus\%5Fedu\%2FDocuments\&id=\%2Fpersonal\%2Fliyanzhao\%5Fu\%5Fnus\%5Fedu\%2FDocuments\%2Fdata\%5Fshare\&shareLink=1\&ga=1}{shared SharePoint folder (prepared data download)}.
+Under the group's collection setup, Alpaca's API rate limits make downloading
+S\&P~500 data take approximately 7--11 hours. Therefore, we provide the prepared S\&P~500 dataset for download.
+
+
+Download the prepared \code{sp500} dataset using the shared download link\footnotemark.
 Extract the archive into the project root, alongside \code{model1.py},
 so that \code{sp500/panel/daily.parquet} and
 \code{sp500/raw/alpaca/} are available at those relative paths.
@@ -740,25 +743,25 @@ so that \code{sp500/panel/daily.parquet} and
 From the project root, the main commands are:
 \begin{verbatim}
 python -m pip install -r requirements.txt
+python model4.py
 python model1.py
 python model2.py
 python model3.py
-python model4.py
 python model4_ablation.py
 python utils/build_report_assets.py --latest
 \end{verbatim}
 \end{minipage}
+\footnotetext{Prepared S\&P~500 dataset: \href{https://nusu-my.sharepoint.com/shared?listurl=https\%3A\%2F\%2Fnusu\%2Dmy\%2Esharepoint\%2Ecom\%2Fpersonal\%2Fliyanzhao\%5Fu\%5Fnus\%5Fedu\%2FDocuments\&id=\%2Fpersonal\%2Fliyanzhao\%5Fu\%5Fnus\%5Fedu\%2FDocuments\%2Fdata\%5Fshare\&shareLink=1\&ga=1}{\textcolor{blue}{SharePoint dataset download}}.}
 
-The first four scripts produce the fixed-Ridge comparison; the fifth runs the
-regularization ablation. The final command builds the combined report tables
-and figures from completed runs without retraining. Use \code{--rebuild} on
-a model script to reconstruct its features from the original local data.
 
-Each run saves a fitted model bundle, metrics, predictions, two figures,
-metadata, and notes in a model-numbered timestamp directory under
-\code{output}. Feature definitions are in the model scripts and
-\code{utils/features.py}; fitting is in \code{utils/experiment.py}; portfolio
-accounting is in \code{utils/backtest.py}.
+The model scripts fit and evaluate each configuration. The asset builder
+generates verified tables and figures from completed runs. Use \code{--rebuild}
+on a model script to regenerate its features.
+
+Each timestamped \code{output} folder contains models, metrics, predictions,
+two figures, metadata, and notes. Features, fitting, and portfolio accounting
+are implemented in \code{utils/features.py}, \code{utils/experiment.py}, and
+\code{utils/backtest.py}, respectively.
 
 \tbl{\VersionTable}{Recorded package versions. The declared seed is zero;
 solvers use deterministic ordering.}{tab:versions}

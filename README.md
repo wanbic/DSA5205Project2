@@ -1,13 +1,30 @@
 # DSA5205 Project 2
 
-Run a model from the project root with Python 3.10+:
+## Reproduction
+
+### 1. Download and extract the prepared data
+
+Under the group's collection setup, Alpaca's API rate limits make downloading the S&P 500 data take approximately 7-11 hours and Russell 2000 data approximately 13 hours. Therefore, we provide the prepared S&P 500 dataset for download so the reported experiments can be reproduced without repeating the lengthy data acquisition. The model scripts run locally without an Alpaca API key.
+
+Download the prepared `sp500` dataset from the [shared SharePoint folder](https://nusu-my.sharepoint.com/shared?listurl=https%3A%2F%2Fnusu%2Dmy%2Esharepoint%2Ecom%2Fpersonal%2Fliyanzhao%5Fu%5Fnus%5Fedu%2FDocuments&id=%2Fpersonal%2Fliyanzhao%5Fu%5Fnus%5Fedu%2FDocuments%2Fdata%5Fshare&shareLink=1&ga=1). Extract the archive into the project root, alongside `model1.py`, so these paths exist:
+
+```text
+sp500/
+  panel/daily.parquet
+  raw/alpaca/calendar.csv
+  raw/alpaca/5min/*.parquet
+```
+
+### 2. Install dependencies and run the experiments
+
+Use Python 3.10+ and run the following commands from the project root. Run Model 4 first so Model 1 can reuse its intraday feature cache:
 
 ```powershell
 python -m pip install -r requirements.txt
+python model4.py
 python model1.py
 python model2.py
 python model3.py
-python model4.py
 python model4_ablation.py
 ```
 
@@ -20,6 +37,8 @@ conda run -n dsa5205proj2 python model3.py
 conda run -n dsa5205proj2 python model4.py
 conda run -n dsa5205proj2 python model4_ablation.py
 ```
+
+### 3. Check the results
 
 Each main model creates `output/modelN_YYYYMMDD_HHMMSS_microseconds/` (N = 1, 2, 3, or 4); the separate ablation creates `output/model4_ablation_YYYYMMDD_HHMMSS_microseconds/`. Both use Beijing time and contain seven files:
 
@@ -153,7 +172,7 @@ elasticnet_bundle = comparison["ElasticNet"]
 Each bundle has `model`, `transform`, and `feature_names` fields. Coefficients are in `model.coef_`, in `feature_names` order. `model2.py` compares Ridge with SPY.
 
 
-## Report
+## Rebuild the report
 
 `report.tex` contains the English report and `report.pdf` is the compiled report. The report includes data sources, coverage, cleaning rules, the team roster, and member contributions. Collection statistics and cleaning rules are checked against the local files and model code. Tables are generated from completed experiment outputs, and figures use reconstructed ledgers checked against their recorded metrics.
 
@@ -163,4 +182,4 @@ pdflatex -disable-installer -interaction=nonstopmode -halt-on-error report.tex
 pdflatex -disable-installer -interaction=nonstopmode -halt-on-error report.tex
 ```
 
-Use the project Python environment. The asset builder creates `report_assets/tables.tex` and six combined figures. Its default pins the report's original run IDs; `--latest` finds each configuration's newest completed run after a fresh reproduction. Keep `report_assets` with `report.tex`. Current paths and software versions appear in the report. Figures and tables should be regenerated together if an experiment changes.
+Run these commands after all five experiments complete. PDF compilation requires a LaTeX distribution such as MiKTeX or TeX Live with `pdflatex` available on the command path. Use the project Python environment for the asset builder. The asset builder creates `report_assets/tables.tex` and six combined figures. Its default pins the report's original run IDs; `--latest` finds each configuration's newest completed run after a fresh reproduction. Keep `report_assets` with `report.tex`. Current paths and software versions appear in the report. Figures and tables should be regenerated together if an experiment changes.
