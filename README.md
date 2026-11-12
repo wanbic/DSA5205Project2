@@ -15,6 +15,47 @@ sp500/
   raw/alpaca/5min/*.parquet
 ```
 
+### Alternative: rebuild the data from original sources
+
+The companion [DSA5205 data pipeline](https://github.com/Apostas1/DSA5205-data-pipeline) provides historical membership construction, Alpaca bar downloads, SEC fundamentals, security matching, and daily-panel construction. The local copy is in `dsa5205_data_pipeline/`; see its [README](dsa5205_data_pipeline/README.md) for provider setup and processing rules. The four forecasting models use price-volume features; ROE and other fundamentals are not model inputs.
+
+```powershell
+git clone https://github.com/Apostas1/DSA5205-data-pipeline.git dsa5205_data_pipeline
+```
+
+Run the pipeline in a separate Python environment with its own `requirements.txt`. From the project root:
+
+```powershell
+cd dsa5205_data_pipeline
+python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+Set your own `ALPACA_API_KEY_ID`, `ALPACA_API_SECRET_KEY`, and `SEC_USER_AGENT` (name and email) in `.env`, then run:
+
+```powershell
+$env:DSA_UNIVERSE = "sp500"
+python -m data_pipeline.sp500.universe --end 2026-10-15
+python -m data_pipeline.download_bars
+python -m data_pipeline.sec_fundamentals
+python -m data_pipeline.securities
+python -m data_pipeline.panel
+cd ..
+```
+
+Keep `.env` private. The pipeline writes `dsa5205_data_pipeline/data/sp500/`. Switch back to the model project's Python environment, install the root `requirements.txt`, and use this data directory directly:
+
+```powershell
+python -m pip install -r requirements.txt
+python model4.py --sp500 dsa5205_data_pipeline/data/sp500 --rebuild
+python model1.py --sp500 dsa5205_data_pipeline/data/sp500
+python model2.py --sp500 dsa5205_data_pipeline/data/sp500 --rebuild
+python model3.py --sp500 dsa5205_data_pipeline/data/sp500 --rebuild
+python model4_ablation.py --sp500 dsa5205_data_pipeline/data/sp500
+```
+
+Alternatively, copy the generated `sp500` folder into the project root and use the default commands below. Source rebuilding involves fresh provider requests; the prepared download preserves the supplied data snapshot used for the report.
+
 ### 2. Install dependencies and run the experiments
 
 Use Python 3.10+ and run the following commands from the project root. Run Model 4 first so Model 1 can reuse its intraday feature cache:

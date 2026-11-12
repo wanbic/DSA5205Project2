@@ -754,9 +754,8 @@ python utils/build_report_assets.py --latest
 \footnotetext{Prepared S\&P~500 dataset: \href{https://nusu-my.sharepoint.com/shared?listurl=https\%3A\%2F\%2Fnusu\%2Dmy\%2Esharepoint\%2Ecom\%2Fpersonal\%2Fliyanzhao\%5Fu\%5Fnus\%5Fedu\%2FDocuments\&id=\%2Fpersonal\%2Fliyanzhao\%5Fu\%5Fnus\%5Fedu\%2FDocuments\%2Fdata\%5Fshare\&shareLink=1\&ga=1}{\textcolor{blue}{SharePoint dataset download}}.}
 
 
-The model scripts fit and evaluate each configuration. The asset builder
-generates verified tables and figures from completed runs. Use \code{--rebuild}
-on a model script to regenerate its features.
+The model scripts fit and evaluate each configuration; the asset builder
+verifies and exports report tables and figures. Use \code{--rebuild} to regenerate features.
 
 Each timestamped \code{output} folder contains models, metrics, predictions,
 two figures, metadata, and notes. Features, fitting, and portfolio accounting
@@ -765,10 +764,9 @@ are implemented in \code{utils/features.py}, \code{utils/experiment.py}, and
 
 \tbl{\VersionTable}{Recorded package versions. The declared seed is zero;
 solvers use deterministic ordering.}{tab:versions}
-Run identifiers, timestamps, and settings are recorded in each output folder's
-metadata. The prepared-data download supports the commands above. Rebuilding
-directly from providers additionally requires the original download and
-security-master/panel-build scripts.
+Our data pipeline\footnote{\href{https://github.com/Apostas1/DSA5205-data-pipeline}{\textcolor{blue}{GitHub: DSA5205 data pipeline}}}
+rebuilds membership, bars, security identities, and daily panels. Pass its
+\code{data/sp500} output using \code{--sp500}; the README provides setup commands.
 
 \section{Conclusion}
 Combining daily and intraday-derived signals gives the strongest portfolio
